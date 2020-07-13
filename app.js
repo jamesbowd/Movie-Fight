@@ -1,8 +1,4 @@
-// Calls the autocomplete function passing certain objects
-createAutoComplete({
-  // Where in the HTML the autocomplete is
-  root: document.querySelector(".autocomplete"),
-
+const autoCompleteConfig = {
   // What the autocomplete dropdown should show
   renderOption(movie) {
     // Turnery expression: set imgSrc to "" if there is no poster and the poster link if there is
@@ -12,11 +8,6 @@ createAutoComplete({
     <img src="${imgSrc}" />
     ${movie.Title}
   `;
-  },
-
-  // Run onMovieSelect when you select an option from the autocomplete
-  onOptionSelect(movie) {
-    onMovieSelect(movie);
   },
 
   // Display movie.Title as the input when you select an auto select option
@@ -38,21 +29,83 @@ createAutoComplete({
     }
     return response.data.Search;
   },
+};
+
+// Calls the autocomplete function passing certain objects for the left of the page
+createAutoComplete({
+  ...autoCompleteConfig,
+  // Where in the HTML the autocomplete is
+  root: document.querySelector("#left-autocomplete"),
+  // Run onMovieSelect when you select an option from the autocomplete
+  onOptionSelect(movie) {
+    document.querySelector(".tutorial").classList.add("is-hidden");
+    onMovieSelect(movie, document.querySelector("#left-summary"), "left");
+  },
 });
 
+// Calls the autocomplete function passing certain objects for the right of the page
+createAutoComplete({
+  ...autoCompleteConfig,
+  // Where in the HTML the autocomplete is
+  root: document.querySelector("#right-autocomplete"),
+  // Run onMovieSelect when you select an option from the autocomplete
+  onOptionSelect(movie) {
+    document.querySelector(".tutorial").classList.add("is-hidden");
+    onMovieSelect(movie, document.querySelector("#right-summary"), "right");
+  },
+});
+
+let leftmovie;
+let rightMovie;
 // When you select a movie from the dropdown query the API for the full details then update the HTML with that info using movieTemplate
-const onMovieSelect = async (movie) => {
+const onMovieSelect = async (movie, summaryElement, side) => {
   const response = await axios.get("http://www.omdbapi.com", {
     params: {
       apikey: "44e15dbc",
       i: movie.imdbID,
     },
   });
-  document.querySelector("#summary").innerHTML = movieTemplate(response.data);
+  summaryElement.innerHTML = movieTemplate(response.data);
+
+  if (side === "left") {
+    leftMovie = response.data;
+    console.log("left");
+  } else {
+    rightMovie = response.data;
+    console.log("rifht");
+  }
+
+  if (leftMovie && rightMovie) {
+    runComparison();
+  }
+};
+
+const runComparison = () => {
+  console.log("Comparison");
 };
 
 // Update the HTML to show the relevent movie info
 const movieTemplate = (movieDetail) => {
+  // Get data value for box office
+  const dollars = parseInt(movieDetail.BoxOffice.replace(/\$/g, "").replace(/,/g, ""));
+  // Get data value for Meta Score
+  const metascore = parseInt(movieDetail.Metascore);
+  // get data for IMDB rating
+  const imdbRating = parseFloat(movieDetail.imdbRating);
+  // get data for IMDB votes
+  const imdbVotes = parseInt(movieDetail.imdbVotes.replace(/,/g, ""));
+  // get data for number of awards (add all numbers in the awards area)
+  const awards = movieDetail.Awards.split(" ").reduce((prev, word) => {
+    const value = parseInt(word);
+
+    if (isNaN(value)) {
+      return prev;
+    } else {
+      return prev + value;
+    }
+  }, 0);
+
+  console.log(awards, dollars, metascore, imdbRating, imdbVotes);
   return `
     <article class="media">
     <figure class="media-left">
